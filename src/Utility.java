@@ -1,7 +1,13 @@
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Utility {
 
@@ -50,6 +56,42 @@ public class Utility {
         }
     }
 
+    public void closeAllBuffRdr(List<BufferedReader> list) {
+        list.forEach(bufferedReader -> {
+            try {
+                bufferedReader.close();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        });
+    }
+
+    public List<BufferedReader> getBuffReader() {
+        List<BufferedReader> bfList = new ArrayList<>();
+        inputFiles.forEach(s -> {
+            try {
+                bfList.add(new BufferedReader(new FileReader(s, StandardCharsets.UTF_8)));
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        });
+        return bfList;
+    }
+
+    public int getMaxStringsVal() {
+
+        Optional<Integer> max = inputFiles.stream().map(s -> {
+            try {
+                return Files.readAllLines(Paths.get(s)).size();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                return 0;
+            }
+        }).max(Comparator.comparingInt(o -> o));
+        return max.orElse(0);
+
+    }
+
     public void doCommand() {
 
         int strCounter = 0;
@@ -80,47 +122,53 @@ public class Utility {
             fw1 = new FileWriter(floatFile, ifAppend);
             fw2 = new FileWriter(stringFile, ifAppend);
 
-            for (int i = 0; i < inputFiles.size(); i++) {
-                BufferedReader bfr = new BufferedReader(new FileReader(inputFiles.get(i), StandardCharsets.UTF_8));
-                while (bfr.ready()) {
-                    String line = bfr.readLine();
-                    try {
-                        long l = Long.parseLong(line);
-                        fw.write(line + "\n");
-                        intCounter++;
-                        sumInt = sumInt + l;
-                        if (l > maxInt) {
-                            maxInt = l;
-                        }
-                        if (l < minInt) {
-                            minInt = l;
-                        }
-                    } catch (NumberFormatException e) {
+            List<BufferedReader> bfList = getBuffReader();
+
+
+            for (int i = 0; i < getMaxStringsVal(); i++) {
+                for (BufferedReader bufferedReader : bfList) {
+                    String line;
+                    if ((line = bufferedReader.readLine()) != null) {
                         try {
-                            double d = Double.parseDouble(line);
-                            fw1.write(line + "\n");
-                            flCounter++;
-                            sumFl = sumFl + d;
-                            if (d > maxFl) {
-                                maxFl = d;
+                            long l = Long.parseLong(line);
+                            fw.write(line + "\n");
+                            intCounter++;
+                            sumInt = sumInt + l;
+                            if (l > maxInt) {
+                                maxInt = l;
                             }
-                            if (d < minFl) {
-                                minFl = d;
+                            if (l < minInt) {
+                                minInt = l;
                             }
-                        } catch (NumberFormatException ex) {
-                            fw2.write(line + "\n");
-                            strCounter++;
-                            if (line.length() > maxStrLength) {
-                                maxStrLength = line.length();
-                            }
-                            if (line.length() < minStrLength) {
-                                minStrLength = line.length();
+                        } catch (NumberFormatException e) {
+                            try {
+                                double d = Double.parseDouble(line);
+                                fw1.write(line + "\n");
+                                flCounter++;
+                                sumFl = sumFl + d;
+                                if (d > maxFl) {
+                                    maxFl = d;
+                                }
+                                if (d < minFl) {
+                                    minFl = d;
+                                }
+                            } catch (NumberFormatException ex) {
+                                fw2.write(line + "\n");
+                                strCounter++;
+                                if (line.length() > maxStrLength) {
+                                    maxStrLength = line.length();
+                                }
+                                if (line.length() < minStrLength) {
+                                    minStrLength = line.length();
+                                }
                             }
                         }
                     }
                 }
-                bfr.close();
             }
+
+            closeAllBuffRdr(bfList);
+
         } catch (IOException e) {
             System.out.println(e.getMessage());
         } finally {

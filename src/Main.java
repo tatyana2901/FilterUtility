@@ -42,9 +42,7 @@ public class Main {
                 break;
             }
         }
-
         ut.doCommand();
-
 
     }
 
